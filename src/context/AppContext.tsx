@@ -8,6 +8,7 @@ type AppContextType = {
   customers: Customer[];
   quotes: Quote[];
   loading: boolean;
+  loadError: string | null;
   addCustomer: (data: Omit<Customer, "id">) => Promise<void>;
   updateCustomer: (customer: Customer) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
@@ -69,19 +70,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      const [{ data: cRows }, { data: qRows }] = await Promise.all([
-        supabase.from("customers").select("*").order("created_at", { ascending: true }),
-        supabase
-          .from("quotes")
-          .select("*, quote_items(*)")
-          .order("created_at", { ascending: false }),
-      ]);
-      setCustomers((cRows ?? []).map(mapCustomer));
-      setQuotes((qRows ?? []).map(mapQuote));
-      setLoading(false);
+      try {
+        const [{ data: cRows, error: cErr }, { data: qRows, error: qErr }] = await Promise.all([
+          supabase.from("customers").select("*").order("created_at", { ascending: true }),
+          supabase
+            .from("quotes")
+            .select("*, quote_items(*)")
+            .order("created_at", { ascending: false }),
+        ]);
+        if (cErr) throw new Error(`Customers: ${cErr.message}`);
+        if (qErr) throw new Error(`Quotes: ${qErr.message}`);
+        setCustomers((cRows ?? []).map(mapCustomer));
+        setQuotes((qRows ?? []).map(mapQuote));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        console.error("Failed to load data:", msg);
+        setLoadError(msg);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
@@ -181,6 +192,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         customers,
         quotes,
         loading,
+        loadError,
         addCustomer,
         updateCustomer,
         deleteCustomer,

@@ -10,7 +10,7 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 };
 
 export default function DashboardPage() {
-  const { quotes, loading } = useAppContext();
+  const { quotes, loading, loadError } = useAppContext();
 
   const thisMonthQuotes = quotes.filter((q) => {
     const d = new Date(q.createdAt);
@@ -31,6 +31,17 @@ export default function DashboardPage() {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-sm" style={{ color: "var(--text-muted)" }}>Loading…</div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="max-w-lg w-full rounded-xl p-6" style={{ backgroundColor: "#2a1018", border: "1px solid #ef4444" }}>
+          <p className="text-sm font-semibold mb-2" style={{ color: "#f87171" }}>Failed to load data from database</p>
+          <p className="text-xs font-mono break-all" style={{ color: "#fca5a5" }}>{loadError}</p>
+        </div>
       </div>
     );
   }
